@@ -1,40 +1,38 @@
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
 
+# Define the menu options with corresponding file paths
+options = {
+    "App Name 1": "/home/your_username/apps/app1_file.zip",
+    "App Name 2": "/home/your_username/apps/app2_file.zip",
+    "App Name 3": "/home/your_username/apps/app3_file.zip"
+    # Add more choices and corresponding file paths as needed
+}
+
+# Function to display the menu with inline keyboard buttons
 def start(update: Update, context: CallbackContext):
-    menu = "Choose an app:\n1. App Name 1\n2. App Name 2\n3. App Name 3"  # Customize with your app names
-    update.message.reply_text(menu)
+    keyboard = []
+    for option_name, _ in options.items():
+        keyboard.append([InlineKeyboardButton(option_name, callback_data=option_name)])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text("Choose an app:", reply_markup=reply_markup)
 
-def get_file_path_for_choice(choice):
-    # Define a mapping of choices to file paths
-    file_paths = {
-        1: '/home/itskaido/apps/flights.csv',
-        2: '/path/to/app2_file.zip',
-        3: '/path/to/app3_file.zip'
-        # Add more choices and corresponding file paths as needed
-    }
-
-    # Check if the choice exists in the mapping
-    if choice in file_paths:
-        return file_paths[choice]
-    else:
-        return None  # Return None if choice is not found (optional: handle this case in your code)
-
-def send_file(update: Update, context: CallbackContext):
-    choice = int(update.message.text)
-    # Logic to determine which file to send based on the user's choice
-    file_path = get_file_path_for_choice(choice)  # Implement this function
+# Function to handle button clicks and send the corresponding file
+def button_click(update: Update, context: CallbackContext):
+    query = update.callback_query
+    selected_option = query.data
+    file_path = options.get(selected_option)
     if file_path:
-        update.message.reply_document(document=open(file_path, 'rb'))
+        query.message.reply_document(document=open(file_path, 'rb'))
     else:
-        update.message.reply_text("Invalid choice. File path not found.")
+        query.message.reply_text("Invalid choice. File path not found.")
 
 def main():
-    updater = Updater("YOUR_BOT_TOKEN", use_context=True, update_queue=None)  # Replace "YOUR_BOT_TOKEN" with your actual token
+    updater = Updater("Telegram Token", use_context=True)  # Replace "YOUR_BOT_TOKEN" with your actual token
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("send", send_file))
+    dp.add_handler(CallbackQueryHandler(button_click))
 
     updater.start_polling()
     updater.idle()
